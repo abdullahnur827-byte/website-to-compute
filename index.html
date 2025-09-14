@@ -1,56 +1,405 @@
-<!DOCTYPE html>
-<html lang="en">
-
+      <!DOCTYPE html>
+<html lang="bn">
 <head>
-  <!-- 
-      This is an HTML comment
-      You can write text in a comment and the content won't be visible in the page
-    -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>RAB Live Members</title>
 
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="https://glitch.com/favicon.ico" />
+<!-- Firebase (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
-  <!--
-      This is the page head - it contains info the browser uses
-      Like the title, which appears on the browser tab but not inside the page
-      Further down you'll see the content that displays in the page
-    -->
-  <title>Hello World!</title>
-
-  <!-- The website stylesheet -->
-  <link rel="stylesheet" href="/style.css" />
-
-  <!-- The website JavaScript file -->
-  <script src="/script.js" defer></script>
+<style>
+  :root{--bg:#121212;--card:#1f1f1f;--muted:#bbb;--accent:#fdbb2d}
+  body{margin:0;font-family:Segoe UI, Roboto, sans-serif;background:var(--bg);color:#eee}
+  header{display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border-bottom:2px solid #333}
+  header img{width:56px;height:56px;border-radius:8px;object-fit:cover;border:2px solid var(--accent)}
+  header h1{margin:0;font-size:1.2rem}
+  header p{margin:0;color:var(--muted);font-size:0.95rem}
+  nav{display:flex;gap:6px;padding:10px;background:#111;border-bottom:1px solid #222;flex-wrap:wrap}
+  nav button{background:transparent;border:none;color:#eee;padding:8px 12px;border-radius:6px;cursor:pointer}
+  nav button:hover{background:#222}
+  main{max-width:980px;margin:18px auto;padding:0 12px}
+  .notice{display:none;background:#ff4444;padding:10px;border-radius:8px;margin-bottom:12px;text-align:center;font-weight:600}
+  section{display:none;background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.6);margin-bottom:14px}
+  section.active{display:block}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .member{background:#2a2a2a;padding:10px;border-radius:8px;text-align:center}
+  .member img{width:100px;height:100px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)}
+  form input, form textarea{width:100%;padding:8px;border-radius:6px;border:none;background:#2b2b2b;color:#eee;margin-top:8px}
+  .btn{display:inline-block;padding:8px 12px;background:var(--accent);color:#000;border-radius:8px;border:none;cursor:pointer;margin-top:8px}
+  .admin-member{background:#292929;padding:8px;border-radius:8px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px}
+  .small{font-size:0.85rem;color:var(--muted)}
+  /* responsive */
+  @media(max-width:520px){ header{flex-direction:column;align-items:flex-start} header img{width:48px;height:48px} }
+</style>
 </head>
-
 <body>
-  <!--
-      The body includes the content you see in the page
-      Each element is defined using tags, like this <div></div>
-      The attributes like class="wrapper" let us style elements in the CSS
-    -->
-  <div class="wrapper">
-    <div class="content" role="main">
-      <h1 class="title">Oh hi website!</h1>
-      <img src="/cool-website.svg" class="illustration" alt="cool website" />
-      <div class="instructions">
-        <p>
-          Fork <a href="https://github.com/glitchdotcom/website-to-compute">this project</a> and open it in a GitHub Codespace.
-        </p>
-        <p> Follow the steps in the README to deploy your new website to Fastly in a few steps!
-        </p>
 
-      </div>
-
-      <footer class="footer">
-        <div>
-          <a class="remix" href="https://github.com/glitchdotcom/website-to-compute">🚧 Get your own site</a>
-        </div>
-      </footer>
-    </div>
+<header>
+  <img id="logo" src="https://via.placeholder.com/150" alt="logo">
+  <div>
+    <h1>Rapid Action Battalion (RAB)</h1>
+    <p id="slogan">ভন্ডামি মোদের অহংকার</p> <!-- default slogan -->
   </div>
-</body>
+</header>
 
-</html>
+<nav>
+  <button onclick="showSection('home')">Home</button>
+  <button onclick="showSection('members')">Members</button>
+  <button onclick="showSection('join')">Join</button>
+  <button onclick="showSection('adminLogin')">Admin Login</button>
+</nav>
+
+<main>
+  <div id="notice" class="notice"></div>
+
+  <section id="home" class="active">
+    <h2>স্বাগতম — RAB Official Page</h2>
+    <p class="small">Admin দ্বারা পরিবর্তিত সব তথ্য রিয়েল-টাইমে আপডেট হবে।</p>
+  </section>
+
+  <section id="members">
+    <h2>Members</h2>
+    <div id="membersList" class="grid"></div>
+  </section>
+
+  <section id="join">
+    <h2>Join Request</h2>
+    <form id="joinForm">
+      <input id="name" required placeholder="Full Name" />
+      <input id="cls" required placeholder="Class / Position" />
+      <textarea id="bio" placeholder="Short bio (optional)"></textarea>
+      <input id="social" placeholder="Social link (optional)" />
+      <input id="pic" type="file" accept="image/*" required />
+      <button class="btn" type="submit">Submit Request</button>
+    </form>
+  </section>
+
+  <section id="adminLogin">
+    <h2>Admin Login</h2>
+    <form id="loginForm">
+      <input id="adminName" placeholder="Username" required />
+      <input id="adminPass" type="password" placeholder="Password" required />
+      <button class="btn" type="submit">Login</button>
+      <p class="small">Default admin: <strong>admin1</strong> / <strong>12345678</strong></p>
+    </form>
+  </section>
+
+  <section id="adminPanel" style="display:none;">
+    <h3>Admin Panel</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="btn" onclick="logoutAdmin()">Logout</button>
+    </div>
+
+    <div style="margin-top:8px">
+      <label class="small">Change Slogan:</label>
+      <input id="adminSlogan" placeholder="স্লোগান লিখুন (বাংলা)" />
+      <button class="btn" onclick="setSlogan()">Save Slogan</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <label class="small">Set Notice:</label>
+      <input id="adminNotice" placeholder="Notice text" />
+      <button class="btn" onclick="setNotice()">Set Notice</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <label class="small">Upload Logo:</label>
+      <input id="adminLogo" type="file" accept="image/*" />
+      <button class="btn" onclick="setLogo()">Upload Logo</button>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #333;margin:12px 0" />
+
+    <h4>Pending Join Requests</h4>
+    <div id="requestsList"></div>
+
+    <hr style="border:none;border-top:1px solid #333;margin:12px 0" />
+    <h4>Existing Members (edit)</h4>
+    <div id="existingMembers"></div>
+  </section>
+</main>
+
+<script>
+/* =========================
+   Paste Your firebaseConfig here
+   You must replace the placeholders with your real keys.
+   Example:
+const firebaseConfig = {
+  apiKey: "AIza....",
+  authDomain: "rab-officials-default.firebaseapp.com",
+  databaseURL: "https://rab-officials-default-rtdb.firebaseio.com",
+  projectId: "rab-officials-default",
+  storageBucket: "rab-officials-default.appspot.com",
+  messagingSenderId: "12345",
+  appId: "1:123:web:abc"
+};
+   ========================= */
+const firebaseConfig = /* <-- paste your firebaseConfig here --> */ {};
+
+/* Initialize Firebase */
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const storage = firebase.storage();
+
+/* Admin credentials (change if you want) */
+const adminUsername = "admin1";
+const adminPassword = "12345678";
+let adminLogged = false;
+
+/* UI helpers */
+function showSection(id){
+  document.querySelectorAll("main section").forEach(s=>s.classList.remove("active"));
+  // also hide adminPanel if needed
+  document.getElementById("adminPanel").style.display = (id==="adminPanel" && adminLogged) ? "block" : (id==="adminPanel" ? "none" : document.getElementById("adminPanel").style.display);
+  const sec = document.getElementById(id);
+  if(sec){
+    sec.classList.add("active");
+  }
+  if(id === 'members') loadMembers();
+  if(id === 'adminPanel' && adminLogged) loadAdminPanel();
+}
+
+/* --- Live listeners --- */
+
+/* Slogan */
+db.ref("slogan").on("value", snap=>{
+  const val = snap.val();
+  if(val) document.getElementById("slogan").innerText = val;
+});
+
+/* Notice */
+db.ref("notice").on("value", snap=>{
+  const val = snap.val();
+  const noticeEl = document.getElementById("notice");
+  if(val){
+    noticeEl.style.display = "block";
+    noticeEl.innerText = val;
+  } else {
+    noticeEl.style.display = "none";
+  }
+});
+
+/* Logo (we store URL in db path 'logo') */
+db.ref("logo").on("value", snap=>{
+  const url = snap.val();
+  if(url) document.getElementById("logo").src = url;
+});
+
+/* Members list (live) */
+function loadMembers(){
+  const container = document.getElementById("membersList");
+  db.ref("members").on("value", snap=>{
+    container.innerHTML = "";
+    if(!snap.exists()) return;
+    snap.forEach(child=>{
+      const m = child.val();
+      const el = document.createElement("div");
+      el.className = "member";
+      el.innerHTML = `
+        <img src="${m.pic || 'https://via.placeholder.com/150'}" alt="${m.name}">
+        <div style="margin-top:8px;font-weight:600">${escapeHtml(m.name||'')}</div>
+        <div class="small">${escapeHtml(m.role||'')}</div>
+        <div style="margin-top:6px">${escapeHtml(m.bio||'')}</div>
+        <div style="margin-top:6px"><a href="${m.social||'#'}" target="_blank" class="small" style="color:var(--muted)">${m.social||''}</a></div>
+      `;
+      container.appendChild(el);
+    });
+  });
+}
+
+/* Join form submit -> store to joinRequests (pic as base64) */
+document.getElementById("joinForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  const name = document.getElementById("name").value.trim();
+  const cls = document.getElementById("cls").value.trim();
+  const bio = document.getElementById("bio").value.trim();
+  const social = document.getElementById("social").value.trim();
+  const picInput = document.getElementById("pic");
+  const file = picInput.files[0];
+  if(!file){ alert("Please select a photo"); return; }
+  const reader = new FileReader();
+  reader.onload = function(){
+    const base64 = reader.result;
+    db.ref("joinRequests").push({name, cls, bio, social, pic: base64, createdAt: Date.now()});
+    alert("Join request sent. Admin will review.");
+    document.getElementById("joinForm").reset();
+  };
+  reader.readAsDataURL(file);
+});
+
+/* Admin login */
+document.getElementById("loginForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  const u = document.getElementById("adminName").value;
+  const p = document.getElementById("adminPass").value;
+  if(u === adminUsername && p === adminPassword){
+    adminLogged = true;
+    alert("Admin logged in");
+    showSection("adminPanel");
+    loadAdminPanel();
+  } else {
+    alert("Wrong credentials");
+  }
+});
+
+function logoutAdmin(){
+  adminLogged = false;
+  alert("Logged out");
+  showSection("home");
+}
+
+/* Admin functions: set slogan, notice, logo upload */
+function setSlogan(){
+  if(!adminLogged){ alert("Login first"); return; }
+  const txt = document.getElementById("adminSlogan").value.trim();
+  db.ref("slogan").set(txt);
+  document.getElementById("adminSlogan").value = "";
+}
+function setNotice(){
+  if(!adminLogged){ alert("Login first"); return; }
+  const txt = document.getElementById("adminNotice").value.trim();
+  db.ref("notice").set(txt);
+  document.getElementById("adminNotice").value = "";
+}
+function setLogo(){
+  if(!adminLogged){ alert("Login first"); return; }
+  const f = document.getElementById("adminLogo").files[0];
+  if(!f){ alert("Select a file"); return; }
+  const path = "logos/" + Date.now() + "_" + f.name;
+  const ref = storage.ref(path);
+  ref.put(f).then(()=>ref.getDownloadURL().then(url=>{
+    db.ref("logo").set(url);
+    alert("Logo uploaded");
+  })).catch(err=>{ console.error(err); alert("Upload failed"); });
+}
+
+/* Admin panel: load requests and members */
+function loadAdminPanel(){
+  loadRequests();
+  loadExistingMembers();
+}
+
+/* Load joinRequests */
+function loadRequests(){
+  const container = document.getElementById("requestsList");
+  db.ref("joinRequests").on("value", snap=>{
+    container.innerHTML = "";
+    if(!snap.exists()){ container.innerHTML = "<p class='small'>No pending requests.</p>"; return; }
+    snap.forEach(child=>{
+      const r = child.val(); const key = child.key;
+      const div = document.createElement("div");
+      div.className = "admin-member";
+      div.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center">
+          <img src="${r.pic||'https://via.placeholder.com/150'}" style="width:60px;height:60px;border-radius:8px;object-fit:cover">
+          <div>
+            <div style="font-weight:700">${escapeHtml(r.name)}</div>
+            <div class="small">${escapeHtml(r.cls)}</div>
+            <div class="small" style="margin-top:6px">${escapeHtml(r.bio||'')}</div>
+            <div style="margin-top:6px">
+              <button class="btn" onclick="approveRequest('${key}')">Approve</button>
+              <button style="background:#666;color:#fff;padding:6px;border-radius:6px;margin-left:6px" onclick="rejectRequest('${key}')">Reject</button>
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  });
+}
+
+/* Approve: push to members and remove request */
+function approveRequest(key){
+  if(!adminLogged){ alert("Login first"); return; }
+  const ref = db.ref("joinRequests/"+key);
+  ref.once("value").then(s=>{
+    const data = s.val();
+    if(!data){ alert("Request not found"); return; }
+    // push directly into members (pic kept as base64). Optionally you could upload it to storage.
+    db.ref("members").push({
+      name: data.name || "",
+      role: data.cls || "",
+      bio: data.bio || "",
+      social: data.social || "",
+      pic: data.pic || ""
+    }).then(()=> {
+      db.ref("joinRequests/"+key).remove();
+      alert("Approved and added to members");
+    });
+  });
+}
+function rejectRequest(key){
+  if(!adminLogged){ alert("Login first"); return; }
+  db.ref("joinRequests/"+key).remove().then(()=>alert("Request removed"));
+}
+
+/* Load existing members for admin with edit options */
+function loadExistingMembers(){
+  const container = document.getElementById("existingMembers");
+  db.ref("members").on("value", snap=>{
+    container.innerHTML = "";
+    if(!snap.exists()){ container.innerHTML = "<p class='small'>No members yet.</p>"; return; }
+    snap.forEach(child=>{
+      const m = child.val(); const key = child.key;
+      const div = document.createElement("div");
+      div.className = "admin-member";
+      div.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center">
+          <img id="memberPic_${key}" src="${m.pic||'https://via.placeholder.com/150'}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">
+          <div style="flex:1">
+            <input value="${escapeAttr(m.name||'')}" onchange="updateMember('${key}','name',this.value)" />
+            <input value="${escapeAttr(m.role||'')}" onchange="updateMember('${key}','role',this.value)" />
+            <input value="${escapeAttr(m.bio||'')}" onchange="updateMember('${key}','bio',this.value)" />
+            <input value="${escapeAttr(m.social||'')}" onchange="updateMember('${key}','social',this.value)" />
+            <div style="margin-top:6px">
+              <input type="file" id="memberFile_${key}" onchange="uploadMemberPhoto('${key}', this.files[0])" />
+              <button style="background:#e54;color:#fff;padding:6px;border-radius:6px;margin-top:6px" onclick="removeMember('${key}')">Remove Member</button>
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  });
+}
+
+/* Update member field */
+function updateMember(key, field, value){
+  if(!adminLogged){ alert("Login first"); return; }
+  const obj = {}; obj[field] = value;
+  db.ref("members/"+key).update(obj);
+}
+
+/* Upload new member photo to storage and update DB with download URL */
+function uploadMemberPhoto(key, file){
+  if(!adminLogged){ alert("Login first"); return; }
+  if(!file) return;
+  const path = "members_photos/" + key + "_" + Date.now() + "_" + file.name;
+  const ref = storage.ref(path);
+  ref.put(file).then(()=>ref.getDownloadURL().then(url=>{
+    db.ref("members/"+key).update({pic: url});
+    // update member image in admin UI if present
+    const img = document.getElementById("memberPic_"+key); if(img) img.src = url;
+    alert("Photo uploaded");
+  })).catch(err=>{ console.error(err); alert("Upload failed") });
+}
+
+/* Remove member */
+function removeMember(key){
+  if(!adminLogged){ alert("Login first"); return; }
+  if(!confirm("Remove this member?")) return;
+  db.ref("members/"+key).remove().then(()=>alert("Member removed"));
+}
+
+/* ===== Utilities ===== */
+function escapeHtml(s){ if(!s) return ""; return String(s).replace(/[&<>"']/g, function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+function escapeAttr(s){ return (s||"").replace(/"/g,'&quot;'); }
+
+/* On page load: try to load members & listeners */
+loadMembers();
+</script>
+</body>
+        </html>
